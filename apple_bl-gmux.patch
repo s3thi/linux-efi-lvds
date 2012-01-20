@@ -1,0 +1,154 @@
+diff -ruN linux-3.1.1.orig/drivers/video/backlight/apple_bl.c linux-3.1.1/drivers/video/backlight/apple_bl.c
+--- linux-3.1.1.orig/drivers/video/backlight/apple_bl.c	2011-11-11 12:19:27.000000000 -0800
++++ linux-3.1.1/drivers/video/backlight/apple_bl.c	2011-11-13 17:11:58.619557918 -0800
+@@ -31,6 +31,8 @@
+ 	/* I/O resource to allocate. */
+ 	unsigned long iostart;
+ 	unsigned long iolen;
++	unsigned long io_1_start;
++	unsigned long io_1_len;
+ 	/* Backlight operations structure. */
+ 	const struct backlight_ops backlight_ops;
+ 	void (*set_brightness)(int);
+@@ -44,6 +46,12 @@
+ static int debug;
+ module_param_named(debug, debug, int, 0644);
+ MODULE_PARM_DESC(debug, "Set to one to enable debugging messages.");
++static int use_gmux;
++module_param_named(use_gmux, use_gmux, int, 0644);
++MODULE_PARM_DESC(use_gmux, "Set to one to use gmux backlight method");
++static int max_brightness = 132000;
++module_param_named(max_brightness, max_brightness, int, 0644);
++MODULE_PARM_DESC(max_brightness, "Set to max allowable brightness");
+ 
+ /*
+  * Implementation for machines with Intel chipset.
+@@ -139,6 +147,53 @@
+ 	.set_brightness = nvidia_chipset_set_brightness,
+ };
+ 
++#define PORT_BACKLIGHT_1 0x774
++#define PORT_BACKLIGHT_2 0x10724
++
++static void gmux_set_brightness(int intensity)
++{
++	outw(0x2f, PORT_BACKLIGHT_2);
++	outl(intensity, PORT_BACKLIGHT_1);
++}
++
++static int gmux_send_intensity(struct backlight_device *bd)
++{
++	int intensity = bd->props.brightness;
++
++	if (debug)
++		printk(KERN_DEBUG DRIVER "setting brightness to %d\n",
++		       intensity);
++
++	gmux_set_brightness(intensity);
++	return 0;
++}
++
++static int gmux_get_intensity(struct backlight_device *bd)
++{
++	int intensity;
++	intensity = inl(PORT_BACKLIGHT_1);
++
++	if (debug)
++		printk(KERN_DEBUG DRIVER "read brightness of %d\n",
++		       intensity);
++
++	return intensity;
++}
++
++static const struct hw_data gmux_data = {
++	.iostart = PORT_BACKLIGHT_1,
++	.iolen = 4,
++	.io_1_start = PORT_BACKLIGHT_2,
++	.io_1_len = 2,
++	.backlight_ops		= {
++		.options	= BL_CORE_SUSPENDRESUME,
++		.get_brightness	= gmux_get_intensity,
++		.update_status	= gmux_send_intensity
++	},
++	.set_brightness = gmux_set_brightness,
++};
++
++
+ static int __devinit apple_bl_add(struct acpi_device *dev)
+ {
+ 	struct backlight_properties props;
+@@ -152,10 +207,16 @@
+ 		return -ENODEV;
+ 	}
+ 
+-	if (host->vendor == PCI_VENDOR_ID_INTEL)
+-		hw_data = &intel_chipset_data;
+-	else if (host->vendor == PCI_VENDOR_ID_NVIDIA)
+-		hw_data = &nvidia_chipset_data;
++	if(use_gmux == 0) {
++		if (host->vendor == PCI_VENDOR_ID_INTEL)
++			hw_data = &intel_chipset_data;
++		else if (host->vendor == PCI_VENDOR_ID_NVIDIA)
++			hw_data = &nvidia_chipset_data;
++	}
++	else 
++		hw_data = &gmux_data;
++	
++	printk(KERN_ERR DRIVER "host->vendor == %x gmux = %d", host->vendor, use_gmux);
+ 
+ 	pci_dev_put(host);
+ 
+@@ -170,24 +231,38 @@
+ 
+ 	if (!intensity) {
+ 		hw_data->set_brightness(1);
+-		if (!hw_data->backlight_ops.get_brightness(NULL))
++		if (!hw_data->backlight_ops.get_brightness(NULL)) {
++			printk(KERN_ERR DRIVER "cannot set brightness - no device found\n");
+ 			return -ENODEV;
++		}
++		
+ 
+ 		hw_data->set_brightness(0);
+ 	}
+-
++	
+ 	if (!request_region(hw_data->iostart, hw_data->iolen,
+-			    "Apple backlight"))
+-		return -ENXIO;
++						"Apple backlight")) {
++		printk(KERN_ERR DRIVER "cannot request backlight region\n");
++		//		return -ENXIO;
++	}
++	if (hw_data->io_1_start != 0 && !request_region(hw_data->io_1_start, hw_data->io_1_len,
++						"Apple backlight1")) {
++		printk(KERN_ERR DRIVER "cannot request backlight region 1\n");
++		//		return -ENXIO;
++	}
++	
+ 
+ 	memset(&props, 0, sizeof(struct backlight_properties));
+ 	props.type = BACKLIGHT_PLATFORM;
+-	props.max_brightness = 15;
+-	apple_backlight_device = backlight_device_register("apple_backlight",
++	props.max_brightness = use_gmux ? max_brightness : 15;
++	apple_backlight_device = backlight_device_register("acpi_video0",
+ 				  NULL, NULL, &hw_data->backlight_ops, &props);
+ 
+ 	if (IS_ERR(apple_backlight_device)) {
+ 		release_region(hw_data->iostart, hw_data->iolen);
++		if(hw_data->io_1_start)
++			release_region(hw_data->io_1_start, hw_data->io_1_len);
++		printk(KERN_ERR DRIVER "cannot register device\n");
+ 		return PTR_ERR(apple_backlight_device);
+ 	}
+ 
+@@ -203,6 +278,8 @@
+ 	backlight_device_unregister(apple_backlight_device);
+ 
+ 	release_region(hw_data->iostart, hw_data->iolen);
++	if(hw_data->io_1_start)
++		release_region(hw_data->io_1_start, hw_data->io_1_len);
+ 	hw_data = NULL;
+ 	return 0;
+ }

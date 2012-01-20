@@ -1,0 +1,102 @@
+diff -rup linux-3.1-rc3/drivers/gpu/drm/i915/i915_drv.c linux-3.1-rc3-lvds/drivers/gpu/drm/i915/i915_drv.c
+--- linux-3.1-rc3/drivers/gpu/drm/i915/i915_drv.c	2011-08-22 12:42:53.000000000 -0600
++++ linux-3.1-rc3-lvds/drivers/gpu/drm/i915/i915_drv.c	2011-08-22 21:27:20.771417235 -0600
+@@ -102,6 +102,10 @@ MODULE_PARM_DESC(enable_hangcheck,
+ 		"WARNING: Disabling this can cause system wide hangs. "
+ 		"(default: true)");
+ 
++unsigned int i915_lvds_channels = 0;
++module_param_named(lvds_channels, i915_lvds_channels, int, 0600);
++MODULE_PARM_DESC(lvds_channels, "LVDS channels in use: 0=(default) probe hardware 1=single 2=dual");
++
+ static struct drm_driver driver;
+ extern int intel_agp_enabled;
+ 
+Only in linux-3.1-rc3-lvds/drivers/gpu/drm/i915: i915_drv.c.orig
+--- linux-3.2/drivers/gpu/drm/i915/i915_drv.h.orig      2012-01-04 16:55:44.000000000 -0700
++++ linux-3.2/drivers/gpu/drm/i915/i915_drv.h   2012-01-07 06:23:07.009590077 -0700
+@@ -1003,6 +1003,7 @@ extern unsigned int i915_fbpercrtc __alw
+ extern int i915_panel_ignore_lid __read_mostly;
+ extern unsigned int i915_powersave __read_mostly;
+ extern int i915_semaphores __read_mostly;
++extern unsigned int i915_lvds_channels __read_mostly;
+ extern unsigned int i915_lvds_downclock __read_mostly;
+ extern int i915_panel_use_ssc __read_mostly;
+ extern int i915_vbt_sdvo_panel_type __read_mostly;
+diff -rup linux-3.1-rc3/drivers/gpu/drm/i915/intel_display.c linux-3.1-rc3-lvds/drivers/gpu/drm/i915/intel_display.c
+--- linux-3.1-rc3/drivers/gpu/drm/i915/intel_display.c	2011-08-22 12:42:53.000000000 -0600
++++ linux-3.1-rc3-lvds/drivers/gpu/drm/i915/intel_display.c	2011-08-22 21:27:20.774750568 -0600
+@@ -355,6 +355,17 @@ static const intel_limit_t intel_limits_
+         .find_pll = intel_find_pll_ironlake_dp,
+ };
+ 
++static bool intel_lvds_is_dual_channel_mode(struct drm_i915_private *dev_priv,
++					    int lvds_reg)
++{
++  /* Did the user specify the number of channels? */
++  if (i915_lvds_channels)
++    return i915_lvds_channels == 2;
++  
++  /* No, let's probe the current status of the hardware instead. */
++  return (I915_READ(lvds_reg) & LVDS_CLKB_POWER_MASK) == LVDS_CLKB_POWER_UP;
++}
++
+ static const intel_limit_t *intel_ironlake_limit(struct drm_crtc *crtc,
+ 						int refclk)
+ {
+@@ -363,8 +374,7 @@ static const intel_limit_t *intel_ironla
+ 	const intel_limit_t *limit;
+ 
+ 	if (intel_pipe_has_type(crtc, INTEL_OUTPUT_LVDS)) {
+-		if ((I915_READ(PCH_LVDS) & LVDS_CLKB_POWER_MASK) ==
+-		    LVDS_CLKB_POWER_UP) {
++	        if (intel_lvds_is_dual_channel_mode(dev_priv, PCH_LVDS)) {
+ 			/* LVDS dual channel */
+ 			if (refclk == 100000)
+ 				limit = &intel_limits_ironlake_dual_lvds_100m;
+@@ -392,8 +402,7 @@ static const intel_limit_t *intel_g4x_li
+ 	const intel_limit_t *limit;
+ 
+ 	if (intel_pipe_has_type(crtc, INTEL_OUTPUT_LVDS)) {
+-		if ((I915_READ(LVDS) & LVDS_CLKB_POWER_MASK) ==
+-		    LVDS_CLKB_POWER_UP)
++		if (intel_lvds_is_dual_channel_mode(dev_priv, LVDS))
+ 			/* LVDS with dual channel */
+ 			limit = &intel_limits_g4x_dual_channel_lvds;
+ 		else
+@@ -524,14 +533,7 @@ intel_find_best_PLL(const intel_limit_t
+ 
+ 	if (intel_pipe_has_type(crtc, INTEL_OUTPUT_LVDS) &&
+ 	    (I915_READ(LVDS)) != 0) {
+-		/*
+-		 * For LVDS, if the panel is on, just rely on its current
+-		 * settings for dual-channel.  We haven't figured out how to
+-		 * reliably set up different single/dual channel state, if we
+-		 * even can.
+-		 */
+-		if ((I915_READ(LVDS) & LVDS_CLKB_POWER_MASK) ==
+-		    LVDS_CLKB_POWER_UP)
++		if (intel_lvds_is_dual_channel_mode(dev_priv, LVDS))
+ 			clock.p2 = limit->p2.p2_fast;
+ 		else
+ 			clock.p2 = limit->p2.p2_slow;
+@@ -595,8 +597,7 @@ intel_g4x_find_best_PLL(const intel_limi
+ 			lvds_reg = PCH_LVDS;
+ 		else
+ 			lvds_reg = LVDS;
+-		if ((I915_READ(lvds_reg) & LVDS_CLKB_POWER_MASK) ==
+-		    LVDS_CLKB_POWER_UP)
++		if (intel_lvds_is_dual_channel_mode(dev_priv, lvds_reg))
+ 			clock.p2 = limit->p2.p2_fast;
+ 		else
+ 			clock.p2 = limit->p2.p2_slow;
+@@ -5379,7 +5380,7 @@ static int ironlake_crtc_mode_set(struct
+ 	if (is_lvds) {
+ 		if ((intel_panel_use_ssc(dev_priv) &&
+ 		     dev_priv->lvds_ssc_freq == 100) ||
+-		    (I915_READ(PCH_LVDS) & LVDS_CLKB_POWER_MASK) == LVDS_CLKB_POWER_UP)
++		     intel_lvds_is_dual_channel_mode(dev_priv, PCH_LVDS))
+ 			factor = 25;
+ 	} else if (is_sdvo && is_tv)
+ 		factor = 20;
+Only in linux-3.1-rc3-lvds/drivers/gpu/drm/i915: intel_display.c.orig
