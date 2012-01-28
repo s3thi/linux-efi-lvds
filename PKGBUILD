@@ -8,7 +8,7 @@ pkgname=('linux' 'linux-headers' 'linux-docs') # Build stock -ARCH kernel
 _kernelname=${pkgname#linux}
 _basekernel=3.2
 pkgver=${_basekernel}.1
-pkgrel=1
+pkgrel=2
 arch=('i686' 'x86_64')
 url="http://www.kernel.org/"
 license=('GPL2')
@@ -27,7 +27,8 @@ source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.2.tar.xz"
 	'i915_reverse.patch'
 	'apple_bl-gmux.patch'
 	'apple_gmux.patch'
-	'radeon_bios_hack.patch')
+	'radeon_bios_hack.patch'
+	'CVE-2012-0056.patch')
 md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
          '62ac6ac9b870162f693ecf5e8606423a'
          'cbd469a1ba0bc8caa765caa42d429ea9'
@@ -40,13 +41,18 @@ md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
 	 'b57d6294631a2c47cfcca133b19b7032'
 	 '169251094d35230de93505796a2f037d'
 	 '69285d2e920aca329bb10019b9b267d3'
-	 'dd9dc330955743b620b7f7c6e0c567e2')
+	 'dd9dc330955743b620b7f7c6e0c567e2'
+	 'a050d76e56d2ce0715c8ff663ae7f436')
 
 build() {
   cd "${srcdir}/linux-${_basekernel}"
 
   # add upstream patch
   patch -p1 -i "${srcdir}/patch-${pkgver}"
+
+  # patch for CVE-2012-0056
+  # see http://blog.zx2c4.com/749 for details
+  patch -p1 -i "${srcdir}/CVE-2012-0056.patch"
 
   # add latest fixes from stable queue, if needed
   # http://git.kernel.org/?p=linux/kernel/git/stable/stable-queue.git
