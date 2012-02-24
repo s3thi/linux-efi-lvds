@@ -7,35 +7,35 @@ pkgname=('linux' 'linux-headers' 'linux-docs') # Build stock -ARCH kernel
 # pkgname=linux-custom       # Build kernel with a different name
 _kernelname=${pkgname#linux}
 _basekernel=3.2
-pkgver=${_basekernel}.5
-pkgrel=1
+pkgver=${_basekernel}.6
+pkgrel=2
 arch=('i686' 'x86_64')
 url="http://www.kernel.org/"
 license=('GPL2')
 makedepends=('xmlto' 'docbook-xsl')
 options=('!strip')
 source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.2.tar.xz"
-        "http://www.kernel.org/pub/linux/kernel/v3.x/patch-${pkgver}.xz"
-        # the main kernel config files
-        'config' 'config.x86_64'
-        # standard config files for mkinitcpio ramdisk
-        "${pkgname}.preset"
-        'change-default-console-loglevel.patch'
-        'i915-fix-ghost-tv-output.patch'
-        'i915-gpu-finish.patch'
+	"http://www.kernel.org/pub/linux/kernel/v3.x/patch-${pkgver}.xz"
+	# the main kernel config files
+	'config' 'config.x86_64'
+	# standard config files for mkinitcpio ramdisk
+	"${pkgname}.preset"
+	'change-default-console-loglevel.patch'
+	'i915-fix-ghost-tv-output.patch'
+	'i915-gpu-finish.patch'
 	'lvds_dual_channel.patch'
 	'i915_reverse.patch'
 	'apple_bl-gmux.patch'
 	'apple_gmux.patch'
 	'radeon_bios_hack.patch')
 md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
-	 '89cb9fb7ed01dccb15510435fb1e5024'
-         'cbd469a1ba0bc8caa765caa42d429ea9'
-         'fc9b3d34b8cb8d9d7d97d229e402c2f4'
-         'eb14dcfd80c00852ef81ded6e826826a'
-         '9d3c56a4b999c8bfbd4018089a62f662'
-         '263725f20c0b9eb9c353040792d644e5'
-         '4cd79aa147825837dc8bc9f6b736c0a0'
+	 '0aea8fc5e705c5b1ef68697de9379cef'
+	 '0586218916c5a8838ee3094783a30e4b'
+	 '80f80eeacbd17502859b4025db3532bb'
+	 'eb14dcfd80c00852ef81ded6e826826a'
+	 '9d3c56a4b999c8bfbd4018089a62f662'
+	 '263725f20c0b9eb9c353040792d644e5'
+	 '4cd79aa147825837dc8bc9f6b736c0a0'
 	 '91dbb7813d61e51f633323e701452e3f'
 	 'b57d6294631a2c47cfcca133b19b7032'
 	 '169251094d35230de93505796a2f037d'
@@ -292,11 +292,11 @@ package_linux-headers() {
   find "${pkgdir}/usr/src/linux-${_kernver}/scripts" -type f -perm -u+w 2>/dev/null | while read binary ; do
     case "$(file -bi "${binary}")" in
       *application/x-sharedlib*) # Libraries (.so)
-        /usr/bin/strip ${STRIP_SHARED} "${binary}";;
+	/usr/bin/strip ${STRIP_SHARED} "${binary}";;
       *application/x-archive*) # Libraries (.a)
-        /usr/bin/strip ${STRIP_STATIC} "${binary}";;
+	/usr/bin/strip ${STRIP_STATIC} "${binary}";;
       *application/x-executable*) # Binaries
-        /usr/bin/strip ${STRIP_BINARIES} "${binary}";;
+	/usr/bin/strip ${STRIP_BINARIES} "${binary}";;
     esac
   done
 
