@@ -7,7 +7,7 @@ pkgname=('linux' 'linux-headers' 'linux-docs') # Build stock -ARCH kernel
 # pkgname=linux-custom       # Build kernel with a different name
 _kernelname=${pkgname#linux}
 _basekernel=3.2
-pkgver=${_basekernel}.6
+pkgver=${_basekernel}.14
 pkgrel=2
 arch=('i686' 'x86_64')
 url="http://www.kernel.org/"
@@ -22,25 +22,24 @@ source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.2.tar.xz"
 	"${pkgname}.preset"
 	'change-default-console-loglevel.patch'
 	'i915-fix-ghost-tv-output.patch'
-	'i915-gpu-finish.patch'
 	'lvds_dual_channel.patch'
 	'i915_reverse.patch'
 	'apple_bl-gmux.patch'
 	'apple_gmux.patch'
 	'radeon_bios_hack.patch')
+
 md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
-	 '0aea8fc5e705c5b1ef68697de9379cef'
-	 '0586218916c5a8838ee3094783a30e4b'
-	 '80f80eeacbd17502859b4025db3532bb'
-	 'eb14dcfd80c00852ef81ded6e826826a'
-	 '9d3c56a4b999c8bfbd4018089a62f662'
-	 '263725f20c0b9eb9c353040792d644e5'
-	 '4cd79aa147825837dc8bc9f6b736c0a0'
-	 '91dbb7813d61e51f633323e701452e3f'
-	 'b57d6294631a2c47cfcca133b19b7032'
-	 '169251094d35230de93505796a2f037d'
-	 '69285d2e920aca329bb10019b9b267d3'
-	 'dd9dc330955743b620b7f7c6e0c567e2')
+         'd2f23478ba4f9d38a589c4579dd06c4a'
+         '0586218916c5a8838ee3094783a30e4b'
+         '1d3ea0de58a01f8a458df2206d12508c'
+         'eb14dcfd80c00852ef81ded6e826826a'
+         '9d3c56a4b999c8bfbd4018089a62f662'
+         '263725f20c0b9eb9c353040792d644e5'
+         '91dbb7813d61e51f633323e701452e3f'
+         'b57d6294631a2c47cfcca133b19b7032'
+         '169251094d35230de93505796a2f037d'
+         '69285d2e920aca329bb10019b9b267d3'
+         'dd9dc330955743b620b7f7c6e0c567e2')
 
 build() {
   cd "${srcdir}/linux-${_basekernel}"
@@ -50,10 +49,6 @@ build() {
 
   # add latest fixes from stable queue, if needed
   # http://git.kernel.org/?p=linux/kernel/git/stable/stable-queue.git
-
-  # fix FS#27883
-  # drm/i915: Only clear the GPU domains upon a successful finish
-  patch -Np1 -i "${srcdir}/i915-gpu-finish.patch"
 
   # Some chips detect a ghost TV output
   # mailing list discussion: http://lists.freedesktop.org/archives/intel-gfx/2011-April/010371.html
