@@ -6,37 +6,38 @@ pkgbase=linux
 pkgname=('linux' 'linux-headers' 'linux-docs') # Build stock -ARCH kernel
 # pkgname=linux-custom       # Build kernel with a different name
 _kernelname=${pkgname#linux}
-_basekernel=3.2
-pkgver=${_basekernel}.14
-pkgrel=2
+_basekernel=3.3
+pkgver=${_basekernel}.1
+pkgrel=1
 arch=('i686' 'x86_64')
 url="http://www.kernel.org/"
 license=('GPL2')
 makedepends=('xmlto' 'docbook-xsl')
 options=('!strip')
-source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.2.tar.xz"
+source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.3.tar.xz"
 	"http://www.kernel.org/pub/linux/kernel/v3.x/patch-${pkgver}.xz"
 	# the main kernel config files
 	'config' 'config.x86_64'
 	# standard config files for mkinitcpio ramdisk
 	"${pkgname}.preset"
+	'fix-acerhdf-1810T-bios.patch'
 	'change-default-console-loglevel.patch'
 	'i915-fix-ghost-tv-output.patch'
+	'ext4-options.patch'
 	'lvds_dual_channel.patch'
-	'i915_reverse.patch'
 	'apple_bl-gmux.patch'
 	'apple_gmux.patch'
 	'radeon_bios_hack.patch')
-
-md5sums=('364066fa18767ec0ae5f4e4abcf9dc51'
-         'd2f23478ba4f9d38a589c4579dd06c4a'
+md5sums=('7133f5a2086a7d7ef97abac610c094f5'
+         '10771d657c5bf342bcfe66ed06653ecb'
          '0586218916c5a8838ee3094783a30e4b'
-         '1d3ea0de58a01f8a458df2206d12508c'
+         'fa5e85689f9ca9aba85e9f8007ff6b8b'
          'eb14dcfd80c00852ef81ded6e826826a'
+         '38c1fd4a1f303f1f6c38e7f082727e2f'
          '9d3c56a4b999c8bfbd4018089a62f662'
          '263725f20c0b9eb9c353040792d644e5'
+         'bb7fd1aa23016c8057046b84fd4eb528'
          '91dbb7813d61e51f633323e701452e3f'
-         'b57d6294631a2c47cfcca133b19b7032'
          '169251094d35230de93505796a2f037d'
          '69285d2e920aca329bb10019b9b267d3'
          'dd9dc330955743b620b7f7c6e0c567e2')
@@ -59,13 +60,19 @@ build() {
   # needed.
   patch -Np1 -i "${srcdir}/i915-fix-ghost-tv-output.patch"
 
+  # Patch submitted upstream, waiting for inclusion:
+  # https://lkml.org/lkml/2012/2/19/51
+  # add support for latest bios of Acer 1810T acerhdf module
+  patch -Np1 -i "${srcdir}/fix-acerhdf-1810T-bios.patch"
+
   # set DEFAULT_CONSOLE_LOGLEVEL to 4 (same value as the 'quiet' kernel param)
   # remove this when a Kconfig knob is made available by upstream
   # (relevant patch sent upstream: https://lkml.org/lkml/2011/7/26/227)
   patch -Np1 -i "${srcdir}/change-default-console-loglevel.patch"
 
-  # undo patches which screw up LVDS patch
-  patch -Np1 -i "${srcdir}/i915_reverse.patch"
+  # fix ext4 module to mount ext3/2 correct
+  # https://bugs.archlinux.org/task/28653
+  patch -Np1 -i "${srcdir}/ext4-options.patch"
 
   # LVDS dual channel patch
   patch -Np1 -i "${srcdir}/lvds_dual_channel.patch"
@@ -190,7 +197,7 @@ package_linux-headers() {
   mkdir -p "${pkgdir}/usr/src/linux-${_kernver}/include"
 
   for i in acpi asm-generic config crypto drm generated linux math-emu \
-    media net pcmcia scsi sound trace video xen; do
+    media mtd net pcmcia scsi sound trace video xen; do
     cp -a include/${i} "${pkgdir}/usr/src/linux-${_kernver}/include/"
   done
 
@@ -296,7 +303,7 @@ package_linux-headers() {
   done
 
   # remove unneeded architectures
-  rm -rf "${pkgdir}"/usr/src/linux-${_kernver}/arch/{alpha,arm,arm26,avr32,blackfin,cris,frv,h8300,ia64,m32r,m68k,m68knommu,mips,microblaze,mn10300,parisc,powerpc,ppc,s390,sh,sh64,sparc,sparc64,um,v850,xtensa}
+  rm -rf "${pkgdir}"/usr/src/linux-${_kernver}/arch/{alpha,arm,arm26,avr32,blackfin,c6x,cris,frv,h8300,hexagon,ia64,m32r,m68k,m68knommu,mips,microblaze,mn10300,openrisc,parisc,powerpc,ppc,s390,score,sh,sh64,sparc,sparc64,tile,unicore32,um,v850,xtensa}
 }
 
 package_linux-docs() {
