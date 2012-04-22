@@ -7,7 +7,7 @@ pkgname=('linux' 'linux-headers' 'linux-docs') # Build stock -ARCH kernel
 # pkgname=linux-custom       # Build kernel with a different name
 _kernelname=${pkgname#linux}
 _basekernel=3.3
-pkgver=${_basekernel}.1
+pkgver=${_basekernel}.2
 pkgrel=1
 arch=('i686' 'x86_64')
 url="http://www.kernel.org/"
@@ -26,12 +26,11 @@ source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.3.tar.xz"
 	'ext4-options.patch'
 	'lvds_dual_channel.patch'
 	'apple_bl-gmux.patch'
-	'apple_gmux.patch'
 	'radeon_bios_hack.patch')
 md5sums=('7133f5a2086a7d7ef97abac610c094f5'
-         '10771d657c5bf342bcfe66ed06653ecb'
+         '68907107b0f62a19608588bdb6b29e20'
          '0586218916c5a8838ee3094783a30e4b'
-         'fa5e85689f9ca9aba85e9f8007ff6b8b'
+         '633e65872d440252d32868c76dde0ce2'
          'eb14dcfd80c00852ef81ded6e826826a'
          '38c1fd4a1f303f1f6c38e7f082727e2f'
          '9d3c56a4b999c8bfbd4018089a62f662'
@@ -39,7 +38,6 @@ md5sums=('7133f5a2086a7d7ef97abac610c094f5'
          'bb7fd1aa23016c8057046b84fd4eb528'
          '91dbb7813d61e51f633323e701452e3f'
          '169251094d35230de93505796a2f037d'
-         '69285d2e920aca329bb10019b9b267d3'
          'dd9dc330955743b620b7f7c6e0c567e2')
 
 build() {
@@ -79,9 +77,6 @@ build() {
 
   # Apple gmux backlight
   patch -Np1 -i "${srcdir}/apple_bl-gmux.patch"
-
-  # Apple gmux vga_switcheroo
-  patch -Np1 -i "${srcdir}/apple_gmux.patch"
 
   # Load bios from /lib/firmware radeon
   patch -Np0 -i "${srcdir}/radeon_bios_hack.patch"
