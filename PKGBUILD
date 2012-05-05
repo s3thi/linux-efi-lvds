@@ -7,7 +7,7 @@ pkgname=('linux' 'linux-headers' 'linux-docs') # Build stock -ARCH kernel
 # pkgname=linux-custom       # Build kernel with a different name
 _kernelname=${pkgname#linux}
 _basekernel=3.3
-pkgver=${_basekernel}.2
+pkgver=${_basekernel}.4
 pkgrel=1
 arch=('i686' 'x86_64')
 url="http://www.kernel.org/"
@@ -28,7 +28,7 @@ source=("http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.3.tar.xz"
 	'apple_bl-gmux.patch'
 	'radeon_bios_hack.patch')
 md5sums=('7133f5a2086a7d7ef97abac610c094f5'
-         '68907107b0f62a19608588bdb6b29e20'
+         '9c4cc16f10b645fbb90f6c05ad388883'
          '0586218916c5a8838ee3094783a30e4b'
          '633e65872d440252d32868c76dde0ce2'
          'eb14dcfd80c00852ef81ded6e826826a'
@@ -121,7 +121,7 @@ build() {
 package_linux() {
   pkgdesc="The Linux Kernel and modules"
   groups=('base')
-  depends=('coreutils' 'linux-firmware' 'module-init-tools>=3.16' 'mkinitcpio>=0.7')
+  depends=('coreutils' 'linux-firmware' 'kmod' 'mkinitcpio>=0.7')
   optdepends=('crda: to set the correct wireless channels of your country')
   provides=('kernel26')
   conflicts=('kernel26')
